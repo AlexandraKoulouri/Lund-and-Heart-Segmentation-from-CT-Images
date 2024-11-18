@@ -1,0 +1,29 @@
+
+%Maximum likelihood to belong in the inner soft tissue
+function [I,J,MapImg] = MaxLikelSoftTissue(Img,VolumeSize,RibCage,Velocity);
+load MeanValue.mat
+load StdValue.mat
+
+
+VolumeMask=imfill(RibCage);
+VolumeMask=imerode(VolumeMask, strel(ones(10,10)));
+Ind = find(VolumeMask==1 & Img>0);
+[J1,J2] = ind2sub([VolumeSize(1),VolumeSize(2)],Ind);
+data=[J1,J2];
+IntensityValues=Img(Ind);
+Displacements=[Velocity(Ind),y(Ind),z(Ind)]';
+[Pmax,ClassNum]= NaiveBayesianClassif(data,IntensityValues, Displacements,VolumeSize, MeanValue,StdValue,SliceNum);
+MapImg=zeros(size(Img,1),size(Img,2));
+MapImg(Ind)=ClassNum;
+ProbabilitiesMap=zeros(size(MapImg));
+ProbabilitiesMap(Ind)=Pmax;
+Ind1=find(MapImg==1 & ProbabilitiesMap>0);
+ProbabilitiesHeartMap=zeros(size(MapImg));
+ProbabilitiesHeartMap(Ind1)=ProbabilitiesMap(Ind1);
+ProbabilitiesHeartMap = imerode(ProbabilitiesHeartMap ,strel(ones(4,4)));
+MaxLikelihood=max(max(ProbabilitiesHeartMap));
+
+[I,J]=find(ProbabilitiesHeartMap==MaxLikelihood);
+
+imagesc(MapImg);hold on
+plot(J,I,'r*')
